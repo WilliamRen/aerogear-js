@@ -81,7 +81,7 @@
             return syncEngine.getDocument( id );
         };
 
-        this.diff = function( data ) {
+        this._diff = function( data ) {
             return syncEngine.diff( data );
         };
 
@@ -95,7 +95,7 @@
             }
         };
 
-        this.sendEdits = function( edit ) {
+        this._sendEdits = function( edit ) {
             if ( ws.readyState === WebSocket.OPEN ) {
                 //console.log( 'sending edits:', edit );
                 ws.send( JSON.stringify( edit ) );
@@ -119,6 +119,11 @@
                     }
                 }
             }
+        };
+
+        this.sync = function( data ) {
+            var edits = this._diff( data );
+            this._sendEdits( edits );
         };
 
         this.removeDoc = function( doc ) {
