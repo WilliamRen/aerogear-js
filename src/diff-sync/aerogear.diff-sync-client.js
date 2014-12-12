@@ -49,8 +49,22 @@
                 }
             };
             ws.onmessage = function( e ) {
-                if( config.onmessage ) {
-                    config.onmessage.apply( this, arguments );
+                var data, doc;
+
+                try {
+                    data = JSON.parse(e.data);
+                } catch( err ) {
+                    data = {};
+                }
+
+                if ( data ) {
+                    that._patch( data );
+                }
+
+                doc = that.getDocument( data.id );
+
+                if( config.onsync ) {
+                    config.onsync.call( this, doc, e );
                 }
             };
             ws.onerror = function( e ) {
@@ -73,7 +87,7 @@
             ws.close();
         };
 
-        this.patch = function( data ) {
+        this._patch = function( data ) {
             syncEngine.patch( data );
         };
 
@@ -122,8 +136,8 @@
         };
 
         this.sync = function( data ) {
-            var edits = this._diff( data );
-            this._sendEdits( edits );
+            var edits = that._diff( data );
+            that._sendEdits( edits );
         };
 
         this.removeDoc = function( doc ) {
@@ -131,18 +145,19 @@
            // console.log( "removing  doc from engine" );
         };
 
-        this.update = function( docId ) {
+        this.fetch = function( docId ) {
+            var doc, edits, task;
+
             if ( sendQueue.length === 0 ) {
-                var doc = syncEngine.getDocument( docId );
-                var edits = syncEngine.diff( doc );
-                that.sendEdits( edits );
+                doc = syncEngine.getDocument( docId );
+                that.sync( doc );
             } else {
                 while ( sendQueue.length ) {
-                    var task = sendQueue.shift();
+                    task = sendQueue.shift();
                     if ( task.type === "add" ) {
                         send ( task.type, task.msg );
                     } else {
-                        that.sendEdits( task.msg );
+                        that._sendEdits( task.msg );
                     }
                 }
             }
